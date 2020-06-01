@@ -59,11 +59,6 @@ def task1():
         drawBoundingBox(image, found,(255,0,0))
 
 
-
-    
-
-
-
 def task2():
 
     print('Task 2 - Extract HOG features')
@@ -85,8 +80,8 @@ def task2():
 
     hog = cv.HOGDescriptor()
     h_pos = []
-    h_neg = []
-    for pos_img,neg_img in zip(filenames_train_pos[0],filenames_train_neg[0]):
+
+    for pos_img in filenames_train_pos[0]:
         im = cv.imread(path_train_2+"pos/"+pos_img)
         h,w,c = im.shape
         #Calc center crop
@@ -97,7 +92,8 @@ def task2():
         crop_img = im[x1:x2,y1:y2]
         h = hog.compute(crop_img)
         h_pos.append(h)
-
+    h_neg = []  
+    for neg_img in filenames_train_neg[0]:
         im = cv.imread(path_train_2+"neg/"+neg_img)
         h,w,c = im.shape
         h2,w2 = height//2, width//2
@@ -107,7 +103,11 @@ def task2():
             x1,x2 = ih2-h2,ih2+h2
             crop_img = im[x1:x2,y1:y2]
             feat = hog.compute(crop_img)
-            h_neg.append(feat)
+            h_neg.append(feat) 
+    hog_feats = np.concatenate([np.array(h_pos),np.array(h_neg)])
+    print(hog_feats.shape, "saved features")
+    np.save("data/train_hog_descs.npy",hog_feats)    
+
 
 
 
@@ -115,14 +115,69 @@ def task2():
 
 
 def task3(): 
+    from sklearn.svm import SVC 
     print('Task 3 - Train SVM and predict confidence values')
       #TODO Create 3 SVMs with different C values, train them with the training data and save them
       # then use them to classify the test images and save the results
     
 
-    filelist_testPos = path_test_2 + 'filenamesTestPos.txt'
-    filelist_testNeg = path_test_2 + 'filenamesTestNeg.txt'
+    filelist_test_pos = path_test_2 + 'filenamesTestPos.txt'
+    filenames_test_pos = []
+    with open(filelist_test_pos, "r") as f:
+        filenames_test_pos.append(f.read(-1).splitlines())
+
+    filelist_test_neg = path_test_2 + 'filenamesTestNeg.txt'
+    filenames_test_neg = []
+    with open(filelist_test_neg, "r") as f:
+        filenames_test_neg.append(f.read(-1).splitlines())
+
+    hog_features = np.squeeze(np.load("data/train_hog_descs.npy"))
+    labels = np.concatenate((np.ones(500),np.zeros(4000)))
+    print(hog_features.shape,labels.shape)
+    # Shuffle Samples
+    rand = np.random.RandomState(321)
+    shuffle = rand.permutation(hog_features.shape[0])
+    hog_features = hog_features[shuffle]
+    labels = labels[shuffle]    
     
+    clf001  = SVC(C=0.01, probability=True)
+    clf1    = SVC(C=1, probability=True)  
+    clf100  = SVC(C=100, probability=True)      
+    clf001.fit(hog_features,labels)
+    clf1.fit(hog_features,labels)
+    clf100.fit(hog_features,labels)
+
+    hog = cv.HOGDescriptor()
+    h_pos = []
+
+    for pos_img in filenames_test_pos[0]:
+        im = cv.imread(path_train_2+"pos/"+pos_img)
+        h,w,c = im.shape
+        #Calc center crop
+        ih2,iw2 = h//2,w//2
+        h2,w2 = height//2, width//2
+        y1,y2 = iw2-w2,iw2+w2
+        x1,x2 = ih2-h2,ih2+h2
+        crop_img = im[x1:x2,y1:y2]
+        h = hog.compute(crop_img)
+        h_pos.append(h)
+    h_neg = []  
+    for neg_img in filenames_test_neg[0]:
+        im = cv.imread(path_train_2+"neg/"+neg_img)
+        h,w,c = im.shape
+        h2,w2 = height//2, width//2
+        for i in range(10):
+            ih2,iw2 = np.random.randint(h2,h-h2),np.random.randint(w2,w-w2)
+            y1,y2 = iw2-w2,iw2+w2
+            x1,x2 = ih2-h2,ih2+h2
+            crop_img = im[x1:x2,y1:y2]
+            feat = hog.compute(crop_img)
+            h_neg.append(feat) 
+    hog_feats = np.squeeze(np.concatenate([np.array(h_pos),np.array(h_neg)]))
+
+    y001 = clf001.predict(hog_feats)
+    y1   = clf1.predict(hog_feats)
+    y100 = clf100.predict(hog_feats)
 
 
 
