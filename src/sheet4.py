@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 import cv2 
+import cv2 as cv
 import numpy as np
 import random
 import os 
+import matplotlib.pyplot as plt
 
 from custom_hog_detector import CustomHogDetector
 # Global constants
@@ -11,15 +13,17 @@ from custom_hog_detector import CustomHogDetector
 width = 64
 height = 128
 
+dir_path = '/home/andrzej/studies/cv2/homework3/data/'
+
 num_negative_samples = 10 # number of negative samples per image
-train_hog_path = '../train_hog_descs.dat' # the file to which you save the HOG descriptors of every patch
-train_labels = '../labels_train.dat' # the file to which you save the labels of the training data
-my_svm_filename = '../my_pretrained_svm.dat' # the file to which you save the trained svm 
+# train_hog_path = dir_path'/train_hog_descs.dat' # the file to which you save the HOG descriptors of every patch
+# train_labels = '../labels_train.dat' # the file to which you save the labels of the training data
+# my_svm_filename = '../my_pretrained_svm.dat' # the file to which you save the trained svm 
 
 #data paths
-test_images_1 = '../data/task_1_testImages/'
-path_train_2 = '../task_2_3_Data/01Train/'
-path_test_2 = '../task_2_3_Data/02Test/'
+test_images_1 = dir_path + 'task_1_testImages/'
+path_train_2 = dir_path + 'task_2_3_data/train/'
+path_test_2 = dir_path  + 'task_2_3_data/test/'
 
 #***********************************************************************************
 # draw a bounding box in a given image
@@ -41,9 +45,8 @@ def drawBoundingBox(image, detections, color = (0,255,0)):
 
 def task1():
     print('Task 1 - OpenCV HOG')
-    
     # Load images
-    filelist = test_images_1 + "filenames.txt"
+    filelist = test_images_1 + 'filenames.txt'
     filenames = []
     with open(filelist, "r") as f:
         filenames.append(f.read(-1).splitlines())
@@ -110,9 +113,16 @@ def task2():
 
 
 
+def calculate_precision_recall(prediction, labels):
+    prediction_true = prediction == labels
+    prediction_false = np.count_nonzero(prediction != labels) 
 
-
-
+    TP = np.count_nonzero(prediction_true[labels == 1])
+    FP = np.count_nonzero(prediction_false[labels == 1])
+    FN = np.count_nonzero(prediction_false[labels == 0])
+    precission = TP / (TP + FP)
+    recall = TP / (FN + TP)
+    return precission, recall
 
 def task3(): 
     from sklearn.svm import SVC 
@@ -174,10 +184,26 @@ def task3():
             feat = hog.compute(crop_img)
             h_neg.append(feat) 
     hog_feats = np.squeeze(np.concatenate([np.array(h_pos),np.array(h_neg)]))
+    labels_test = np.concatenate((np.ones(len(h_pos)),np.zeros(len(h_neg))))
 
     y001 = clf001.predict(hog_feats)
+    precision001, recall001 = calculate_precision_recall(y001, labels)
+
     y1   = clf1.predict(hog_feats)
+    precision1, recall1 = calculate_precision_recall(y1, labels)
+
     y100 = clf100.predict(hog_feats)
+    precision100, recall100 = calculate_precision_recall(y100, labels)
+
+    x = [0.01, 1.0, 100.0]
+    precision_x = [precision001, precision1, precision100]
+    recall_y = [recall001, recall1, recall100]
+    plt.plot(precision_x,recall_y)
+    plt.show()
+
+
+
+
 
 
 
@@ -206,13 +232,13 @@ def task5():
 if __name__ == "__main__":
 
     # Task 1 - OpenCV HOG
-    task1()
+    #task1()
 
     # Task 2 - Extract HOG Features
-    #task2()
+    task2()
 
     # Task 3 - Train SVM
-    #task3()
+    task3()
 
     # Task 5 - Multiple Detections
     #task5()
