@@ -117,7 +117,7 @@ def calculate_precision_recall(prediction, labels):
     prediction_true = prediction == labels
     prediction_false = prediction != labels
 
-    TP = np.count_nonzero(prediction_true[labels == 1])
+    TP = np.count_nonzero(prediction_true)
     FP = np.count_nonzero(prediction_false[labels == 1])
     FN = np.count_nonzero(prediction_false[labels == 0])
     precission = TP / (TP + FP)
@@ -151,11 +151,11 @@ def task3():
     labels = labels[shuffle]    
     
     clf001  = SVC(C=0.01, probability=True)
-    # clf1    = SVC(C=1, probability=True)  
-    # clf100  = SVC(C=100, probability=True)      
+    clf1    = SVC(C=1, probability=True)  
+    clf100  = SVC(C=100, probability=True)      
     clf001.fit(hog_features,labels)
-    # clf1.fit(hog_features,labels)
-    # clf100.fit(hog_features,labels)
+    clf1.fit(hog_features,labels)
+    clf100.fit(hog_features,labels)
 
     hog = cv.HOGDescriptor()
     h_pos = []
@@ -189,13 +189,12 @@ def task3():
     y001 = clf001.predict(hog_feats)
     precision001, recall001 = calculate_precision_recall(y001, labels_test)
 
-    # y1   = clf1.predict(hog_feats)
-    # precision1, recall1 = calculate_precision_recall(y1, labels_test)
+    y1   = clf1.predict(hog_feats)
+    precision1, recall1 = calculate_precision_recall(y1, labels_test)
 
-    # y100 = clf100.predict(hog_feats)
-    # precision100, recall100 = calculate_precision_recall(y100, labels_test)
+    y100 = clf100.predict(hog_feats)
+    precision100, recall100 = calculate_precision_recall(y100, labels_test)
 
-    x = [0.01, 1.0, 100.0]
     precision_x = [precision001, precision1, precision100]
     recall_y = [recall001, recall1, recall100]
     plt.plot(precision_x,recall_y)
