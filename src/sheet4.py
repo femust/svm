@@ -115,7 +115,7 @@ def task2():
 
 def calculate_precision_recall(prediction, labels):
     prediction_true = prediction == labels
-    prediction_false = np.count_nonzero(prediction != labels) 
+    prediction_false = prediction != labels
 
     TP = np.count_nonzero(prediction_true[labels == 1])
     FP = np.count_nonzero(prediction_false[labels == 1])
