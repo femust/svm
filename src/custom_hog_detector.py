@@ -43,32 +43,72 @@ class CustomHogDetector:
         
         return False
 
-    def detect(self, image_path, show = True):
-        image = cv2.imread(image_path)
+    def detect(self, image, show = True):
         found_rects, found_weights = self.hog.detectMultiScale(image, winStride=(self.window_stride, self.window_stride), scale=self.scaleFactors, finalThreshold=self.hit_threshold)
         found_rects_filtered = []
+        found_rects_nonfiltered = []
         found_weights_filtered = []
         for ri, r in enumerate(found_rects):
             for qi, q in enumerate(found_rects):
+                found_rects_nonfiltered.append(r)
                 if ri != qi and self.is_inside(r, q) and self.is_bigger_than_overlap_threshold(r,q):
                     break
             else:
                 found_rects_filtered.append(r)
                 found_weights_filtered.append(found_weights[ri])
-        if show:
-            for ri, r in enumerate(found_rects_filtered):
-                x, y, w, h = r
-                cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 255), 2)
-                text = '%.2f' % found_weights_filtered[ri]
-                cv2.putText(image, text, (x, y - 20), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+        return found_rects_filtered, found_weights_filtered, found_rects_nonfiltered
+        # if show:
+        #     for ri, r in enumerate(found_rects_filtered):
+        #         x, y, w, h = r
+        #         cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 255), 2)
+        #         text = '%.2f' % found_weights_filtered[ri]
+        #         cv2.putText(image, text, (x, y - 20), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
     
-            cv2.imshow('People', image)
-            cv2.waitKey(0)
+        #     cv2.imshow('People', image)
+        #     cv2.waitKey(0)
 
 
 
+#MORRIS
+# print('Task 1 - OpenCV HOG')
+    
+#     # Load images
+
+#     filelist = test_images_1 + 'filenames.txt'
+#     filenames = []
+#     with open(filelist, "r") as f:
+#         filenames.append(f.read(-1).splitlines())
+
+#     hog = cv.HOGDescriptor()
+#     hog.setSVMDetector( cv.HOGDescriptor_getDefaultPeopleDetector() )
 
 
+#     for fn in filenames[0]:
+#         print(os.path.join(test_images_1,fn), ' - ',)
+#         img = cv.imread(os.path.join(test_images_1,fn))
+
+
+
+#         found, _w = hog.detectMultiScale(img, winStride=(8,8), padding=(32,32), scale=1.05)
+#         found_filtered = []
+#         for ri, r in enumerate(found):
+#             for qi, q in enumerate(found):
+#                 if ri != qi and inside(r, q):
+#                     break
+#             else:
+#                 found_filtered.append(r)
+#         drawBoundingBox(img, found)
+#         drawBoundingBox(img, found_filtered)
+#         print('%d (%d) found' % (len(found_filtered), len(found)))
+#         cv.imshow('img', img)
+#         ch = cv.waitKey()
+#         if ch == 27:
+#             break
+
+#     print('Done')
+    
+#     cv.waitKey(0)
+#     cv.destroyAllWindows()
 
 
 

@@ -1,6 +1,8 @@
-import cv2 as cv
+#!/usr/bin/env python3
+import cv2 
 import numpy as np
 import random
+import os 
 
 from custom_hog_detector import CustomHogDetector
 # Global constants
@@ -15,7 +17,7 @@ train_labels = '../labels_train.dat' # the file to which you save the labels of 
 my_svm_filename = '../my_pretrained_svm.dat' # the file to which you save the trained svm 
 
 #data paths
-test_images_1 = '../task_1_testImages/'
+test_images_1 = '../data/task_1_testImages/'
 path_train_2 = '../task_2_3_Data/01Train/'
 path_test_2 = '../task_2_3_Data/02Test/'
 
@@ -26,31 +28,40 @@ path_test_2 = '../task_2_3_Data/02Test/'
 # detections: the bounding box of the detections (people)
 # returns None
 
-def drawBoundingBox(im, detections):
-    pass
+def drawBoundingBox(image, detections, color = (0,255,0)):
+    for ri, r in enumerate(detections):
+        x, y, w, h = r
+        cv2.rectangle(image, (x, y), (x + w, y + h), color, 2)
+        #text = '%.2f' % found_weights_filtered[ri]
+        #cv2.putText(image, text, (x, y - 20), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+    cv2.imshow('img', image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
 
 def task1():
     print('Task 1 - OpenCV HOG')
     
     # Load images
-
-    filelist = test_images_1 + 'filenames.txt'
-
-    # TODO: Create a HOG descriptor object to extract the features and detect people. Do this for every 
-    #       image, then draw a bounding box and display the image
-
-    #TODO: refactor according to the task
-
+    filelist = test_images_1 + "filenames.txt"
+    filenames = []
+    with open(filelist, "r") as f:
+        filenames.append(f.read(-1).splitlines())
 
     custom_hog = CustomHogDetector()
-    custom_hog.detect("/home/andrzej/studies/cv2/homework3/data/task_1_testImages/TestImage01.png", True)
+    for fn in filenames[0]:
+        print(os.path.join(test_images_1,fn), ' - ',)
+        img_path = os.path.join(test_images_1,fn)
+        image = cv2.imread(img_path)
+        filtered, weights, found = custom_hog.detect(image, True)
+        
+        drawBoundingBox(image, filtered,(0,255,0))
+        drawBoundingBox(image, found,(255,0,0))
+
 
 
     
 
-    
-    #cv.waitKey(0)
-    #cv.destroyAllWindows()
 
 
 def task2():
@@ -63,14 +74,40 @@ def task2():
     # Load image names
   
     filelist_train_pos = path_train_2 + 'filenamesTrainPos.txt'
+    filenames_train_pos = []
+    with open(filelist_train_pos, "r") as f:
+        filenames_train_pos.append(f.read(-1).splitlines())
+
     filelist_train_neg = path_train_2 + 'filenamesTrainNeg.txt'
-    # TODO: Create a HOG descriptor object to extract the features from the set of positive and negative samples 
+    filenames_train_neg = []
+    with open(filelist_train_neg, "r") as f:
+        filenames_train_neg.append(f.read(-1).splitlines())
 
-    # positive samples: Get a crop of size 64*128 at the center of the image then extract its HOG features
-    # negative samples: Sample 10 crops from each negative sample at random and then extract their HOG features
-    # In total you should have  (x+10*y) training samples represented as HOG features(x=number of positive images, y=number of negative images),
-    # save them and their labels in the path train_hog_path and train_labels in order to load them in section 3 
+    hog = cv.HOGDescriptor()
+    h_pos = []
+    h_neg = []
+    for pos_img,neg_img in zip(filenames_train_pos[0],filenames_train_neg[0]):
+        im = cv.imread(path_train_2+"pos/"+pos_img)
+        h,w,c = im.shape
+        #Calc center crop
+        ih2,iw2 = h//2,w//2
+        h2,w2 = height//2, width//2
+        y1,y2 = iw2-w2,iw2+w2
+        x1,x2 = ih2-h2,ih2+h2
+        crop_img = im[x1:x2,y1:y2]
+        h = hog.compute(crop_img)
+        h_pos.append(h)
 
+        im = cv.imread(path_train_2+"neg/"+neg_img)
+        h,w,c = im.shape
+        h2,w2 = height//2, width//2
+        for i in range(10):
+            ih2,iw2 = np.random.randint(h2,h-h2),np.random.randint(w2,w-w2)
+            y1,y2 = iw2-w2,iw2+w2
+            x1,x2 = ih2-h2,ih2+h2
+            crop_img = im[x1:x2,y1:y2]
+            feat = hog.compute(crop_img)
+            h_neg.append(feat)
 
 
 
