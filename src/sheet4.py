@@ -117,7 +117,7 @@ def calculate_precision_recall(prediction, labels):
     prediction_true = prediction == labels
     prediction_false = prediction != labels
 
-    TP = np.count_nonzero(prediction_true[labels == 1])
+    TP = np.count_nonzero(prediction_true)
     FP = np.count_nonzero(prediction_false[labels == 1])
     FN = np.count_nonzero(prediction_false[labels == 0])
     precission = TP / (TP + FP)
@@ -150,12 +150,21 @@ def task3():
     hog_features = np.float32(hog_features[shuffle])
     labels = labels[shuffle]    
     
+<<<<<<< HEAD
     #clf001  = SVC(C=0.01)
     # clf1    = SVC(C=1, probability=True)  
     # clf100  = SVC(C=100, probability=True)      
     #clf001.fit(hog_features,labels)
     # clf1.fit(hog_features,labels)
     # clf100.fit(hog_features,labels)
+=======
+    clf001  = SVC(C=0.01, probability=True)
+    clf1    = SVC(C=1, probability=True)  
+    clf100  = SVC(C=100, probability=True)      
+    clf001.fit(hog_features,labels)
+    clf1.fit(hog_features,labels)
+    clf100.fit(hog_features,labels)
+>>>>>>> e1ebf8d8e795ce65d737f8b6fcc74bbe3ef2dcd9
 
     svm001 = cv.ml.SVM_create()
     svm001.setType(cv.ml.SVM_C_SVC)
@@ -208,6 +217,7 @@ def task3():
     y001 = svm001.predict(hog_feats)[1].ravel()
     precision001, recall001 = calculate_precision_recall(y001, labels_test)
 
+<<<<<<< HEAD
     y1 = svm1.predict(hog_feats)[1].ravel()
     precision1, recall1 = calculate_precision_recall(y1, labels_test)
 
@@ -217,6 +227,14 @@ def task3():
     print("Precision 0.01/1/100:",precision001, precision1, precision100)
     print("Recall 0.01/1/100:",recall001, recall1, recall100)
     x = [0.01, 1.0, 100.0]
+=======
+    y1   = clf1.predict(hog_feats)
+    precision1, recall1 = calculate_precision_recall(y1, labels_test)
+
+    y100 = clf100.predict(hog_feats)
+    precision100, recall100 = calculate_precision_recall(y100, labels_test)
+
+>>>>>>> e1ebf8d8e795ce65d737f8b6fcc74bbe3ef2dcd9
     precision_x = [precision001, precision1, precision100]
     recall_y = [recall001, recall1, recall100]
     plt.plot(precision_x,recall_y)
