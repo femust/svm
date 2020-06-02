@@ -13,12 +13,12 @@ from custom_hog_detector import CustomHogDetector
 width = 64
 height = 128
 
-dir_path = '/home/andrzej/studies/cv2/homework3/data/'
+dir_path = 'data/'
 
 num_negative_samples = 10 # number of negative samples per image
 # train_hog_path = dir_path'/train_hog_descs.dat' # the file to which you save the HOG descriptors of every patch
 # train_labels = '../labels_train.dat' # the file to which you save the labels of the training data
-# my_svm_filename = '../my_pretrained_svm.dat' # the file to which you save the trained svm 
+my_svm_filename = '../my_pretrained_svm.dat' # the file to which you save the trained svm 
 
 #data paths
 test_images_1 = dir_path + 'task_1_testImages/'
@@ -141,21 +141,39 @@ def task3():
     with open(filelist_test_neg, "r") as f:
         filenames_test_neg.append(f.read(-1).splitlines())
 
-    hog_features = np.squeeze(np.load("data/train_hog_descs.npy"))
-    labels = np.concatenate((np.ones(500),np.zeros(4000)))
+    hog_features = np.load("data/train_hog_descs.npy")
+    labels = np.concatenate((np.ones(500, dtype=np.int64),np.zeros(4000, dtype=np.int64)))
     print(hog_features.shape,labels.shape)
     # Shuffle Samples
     rand = np.random.RandomState(321)
     shuffle = rand.permutation(hog_features.shape[0])
-    hog_features = hog_features[shuffle]
+    hog_features = np.float32(hog_features[shuffle])
     labels = labels[shuffle]    
     
-    clf001  = SVC(C=0.01, probability=True)
+    #clf001  = SVC(C=0.01)
     # clf1    = SVC(C=1, probability=True)  
     # clf100  = SVC(C=100, probability=True)      
-    clf001.fit(hog_features,labels)
+    #clf001.fit(hog_features,labels)
     # clf1.fit(hog_features,labels)
     # clf100.fit(hog_features,labels)
+
+    svm001 = cv.ml.SVM_create()
+    svm001.setType(cv.ml.SVM_C_SVC)
+    svm001.setKernel(cv.ml.SVM_LINEAR) # cv.ml.SVM_RBF
+    svm001.setC(0.01)
+    svm001.train(hog_features, cv.ml.ROW_SAMPLE, labels)
+
+    svm1 = cv.ml.SVM_create()
+    svm1.setType(cv.ml.SVM_C_SVC)
+    svm1.setKernel(cv.ml.SVM_LINEAR) # cv.ml.SVM_RBF
+    svm1.setC(1)
+    svm1.train(hog_features, cv.ml.ROW_SAMPLE, labels)
+
+    svm100 = cv.ml.SVM_create()
+    svm100.setType(cv.ml.SVM_C_SVC)
+    svm100.setKernel(cv.ml.SVM_LINEAR) # cv.ml.SVM_RBF
+    svm100.setC(100)
+    svm100.train(hog_features, cv.ml.ROW_SAMPLE, labels)
 
     hog = cv.HOGDescriptor()
     h_pos = []
@@ -176,31 +194,37 @@ def task3():
         im = cv.imread(path_train_2+"neg/"+neg_img)
         h,w,c = im.shape
         h2,w2 = height//2, width//2
-        for i in range(10):
+        for _ in range(10):
             ih2,iw2 = np.random.randint(h2,h-h2),np.random.randint(w2,w-w2)
             y1,y2 = iw2-w2,iw2+w2
             x1,x2 = ih2-h2,ih2+h2
             crop_img = im[x1:x2,y1:y2]
             feat = hog.compute(crop_img)
             h_neg.append(feat) 
-    hog_feats = np.squeeze(np.concatenate([np.array(h_pos),np.array(h_neg)]))
+    hog_feats = np.concatenate([np.array(h_pos),np.array(h_neg)])
     labels_test = np.concatenate((np.ones(len(h_pos)),np.zeros(len(h_neg))))
 
-    y001 = clf001.predict(hog_feats)
+
+    y001 = svm001.predict(hog_feats)[1].ravel()
     precision001, recall001 = calculate_precision_recall(y001, labels_test)
 
-    # y1   = clf1.predict(hog_feats)
-    # precision1, recall1 = calculate_precision_recall(y1, labels_test)
+    y1 = svm1.predict(hog_feats)[1].ravel()
+    precision1, recall1 = calculate_precision_recall(y1, labels_test)
 
-    # y100 = clf100.predict(hog_feats)
-    # precision100, recall100 = calculate_precision_recall(y100, labels_test)
+    y100 = svm100.predict(hog_feats)[1].ravel()
+    precision100, recall100 = calculate_precision_recall(y100, labels_test)
 
+    print("Precision 0.01/1/100:",precision001, precision1, precision100)
+    print("Recall 0.01/1/100:",recall001, recall1, recall100)
     x = [0.01, 1.0, 100.0]
     precision_x = [precision001, precision1, precision100]
     recall_y = [recall001, recall1, recall100]
     plt.plot(precision_x,recall_y)
+    plt.xlabel("precision")
+    plt.ylabel("recall")
     plt.show()
 
+    svm1.save(my_svm_filename)
 
 
 
@@ -212,11 +236,48 @@ def task5():
 
     print ('Task 5 - Eliminating redundant Detections')
     
+    filelist_train_pos = path_train_2 + 'filenamesTrainPos.txt'
+    filenames_train_pos = []
+    with open(filelist_train_pos, "r") as f:
+        filenames_train_pos.append(f.read(-1).splitlines())
 
-    # TODO: Write your own custom class myHogDetector 
-    # Note: compared with the previous tasks, this task requires more coding
+    filelist_train_neg = path_train_2 + 'filenamesTrainNeg.txt'
+    filenames_train_neg = []
+    with open(filelist_train_neg, "r") as f:
+        filenames_train_neg.append(f.read(-1).splitlines())
+
+    #hog = cv.HOGDescriptor()
+    hog = CustomHogDetector(my_svm_filename)
+    h_pos = []
+
+    for pos_img in filenames_train_pos[0]:
+        im = cv.imread(path_train_2+"pos/"+pos_img)
+        h,w,c = im.shape
+        #Calc center crop
+        ih2,iw2 = h//2,w//2
+        h2,w2 = height//2, width//2
+        y1,y2 = iw2-w2,iw2+w2
+        x1,x2 = ih2-h2,ih2+h2
+        crop_img = im[x1:x2,y1:y2]
+        h = hog.detectMultiScale(crop_img)
+        h_pos.append(h)
+    h_neg = []  
+    for neg_img in filenames_train_neg[0]:
+        im = cv.imread(path_train_2+"neg/"+neg_img)
+        h,w,c = im.shape
+        h2,w2 = height//2, width//2
+        for i in range(10):
+            ih2,iw2 = np.random.randint(h2,h-h2),np.random.randint(w2,w-w2)
+            y1,y2 = iw2-w2,iw2+w2
+            x1,x2 = ih2-h2,ih2+h2
+            crop_img = im[x1:x2,y1:y2]
+            feat = hog.detectMultiScale(crop_img)
+            h_neg.append(feat) 
+
+
+    hog_feats = np.concatenate([np.array(h_pos),np.array(h_neg)])
     
-    my_detector = Custom_Hog_Detector(my_svm_filename)
+ 
    
     # TODO Apply your HOG detector on the same test images as used in task 1 and display the results
 
@@ -235,11 +296,11 @@ if __name__ == "__main__":
     #task1()
 
     # Task 2 - Extract HOG Features
-    task2()
+    #task2()
 
     # Task 3 - Train SVM
     task3()
 
     # Task 5 - Multiple Detections
-    #task5()
+    task5()
 
