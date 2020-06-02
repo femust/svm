@@ -46,10 +46,6 @@ class CustomHogDetector:
                 break
             yield img
 
-    ################################################################################
-
-    # generate a set of sliding window locations across the image
-
     def sliding_window(self, img, window_size, step_size=8):
         h,w,_ = img.shape
         for y in range(0, h, step_size):
@@ -59,9 +55,6 @@ class CustomHogDetector:
                 if not (window.shape[0] != window_size[1] or window.shape[1] != window_size[0]):
                     yield (x, y, window)
 
-    ################################################################################
-
-    # perform basic non-maximal suppression of overlapping object detections
 
     def non_max_suppression_fast(self, boxes, overlapThresh):
         if len(boxes) == 0:
@@ -101,11 +94,10 @@ class CustomHogDetector:
     def detectMultiScale(self, img):
         output_img = img.copy();
 
-        # for a range of different image scales in an image pyramid
         current_scale = -1
         detections = []
         rescaling_factor = 1.25
-        ################################ for each re-scale of the image
+
 
         for resized in self.pyramid(img, scale=rescaling_factor):
             if current_scale == -1:
@@ -115,30 +107,14 @@ class CustomHogDetector:
 
             rect_img = resized.copy()
 
-            # # if we want to see progress show each scale
-
-            # if (show_scan_window_process):
-            #     cv2.imshow('current scale',rect_img)
-            #     cv2.waitKey(10);
-
-            # loop over the sliding window for each layer of the pyramid (re-sized image)
 
             window_size = (self.detection_width, self.detection_height)
             step = math.floor(resized.shape[0] / 16)
 
             if step > 0:
-
-                ############################# for each scan window
-
                 for (x, y, window) in self.sliding_window(resized, window_size, step_size=step):
 
-                    # if we want to see progress show each scan window
 
-                    # if (show_scan_window_process):
-                    #     cv2.imshow('current window',window)
-                    #     key = cv2.waitKey(10) # wait 10ms
-
-                    # for each window region get the BoW feature point descriptors
 
                     hog = cv2.HOGDescriptor(); # default is 64 x 128
                     img_hog = cv2.resize(window, 
@@ -146,8 +122,7 @@ class CustomHogDetector:
                                         interpolation = cv2.INTER_AREA)
 
                     hog_descriptor = hog.compute(img_hog)
-                    # generate and classify each window by constructing a BoW
-                    # histogram and passing it through the SVM classifier
+
 
                     if hog_descriptor is not None:
 
@@ -156,22 +131,8 @@ class CustomHogDetector:
                         retval, [result] = self.svm.predict(np.float32([hog_descriptor]))
 
                         print(result)
-
-                        # if we get a detection, then record it
-
                         if result[0] == 1.0:
-
-                            # store rect as (x1, y1) (x2,y2) pair
-
                             rect = np.float32([x, y, x + window_size[0], y + window_size[1]])
-
-                            # if we want to see progress show each detection, at each scale
-
-                            # if (show_scan_window_process):
-                            #     cv2.rectangle(rect_img, (rect[0], rect[1]), (rect[2], rect[3]), (0, 0, 255), 2)
-                            #     cv2.imshow('current scale',rect_img)
-                            #     cv2.waitKey(40)
-
                             rect *= (1.0 / current_scale)
                             detections.append(rect)
         detections_nms = self.non_max_suppression_fast(np.int32(detections), 0.4)
