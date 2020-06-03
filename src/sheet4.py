@@ -13,7 +13,7 @@ from custom_hog_detector import CustomHogDetector
 width = 64
 height = 128
 
-dir_path = 'data/'
+dir_path = '../data/'
 
 num_negative_samples = 10 # number of negative samples per image
 # train_hog_path = dir_path'/train_hog_descs.dat' # the file to which you save the HOG descriptors of every patch
@@ -51,7 +51,7 @@ def task1():
     with open(filelist, "r") as f:
         filenames.append(f.read(-1).splitlines())
 
-    custom_hog = CustomHogDetector()
+    custom_hog = CustomHogDetector(None, custom=True)
     for fn in filenames[0]:
         print(os.path.join(test_images_1,fn), ' - ',)
         img_path = os.path.join(test_images_1,fn)
@@ -109,7 +109,7 @@ def task2():
             h_neg.append(feat) 
     hog_feats = np.concatenate([np.array(h_pos),np.array(h_neg)])
     print(hog_feats.shape, "saved features")
-    np.save("data/train_hog_descs.npy",hog_feats)    
+    np.save("../data/train_hog_descs.npy",hog_feats)    
 
 
 
@@ -141,7 +141,7 @@ def task3():
     with open(filelist_test_neg, "r") as f:
         filenames_test_neg.append(f.read(-1).splitlines())
 
-    hog_features = np.load("data/train_hog_descs.npy")
+    hog_features = np.load("../data/train_hog_descs.npy")
     labels = np.concatenate((np.ones(500, dtype=np.int64),np.zeros(4000, dtype=np.int64)))
     print(hog_features.shape,labels.shape)
     # Shuffle Samples
@@ -247,7 +247,7 @@ def task5():
         filenames_train_neg.append(f.read(-1).splitlines())
 
     #hog = cv.HOGDescriptor()
-    hog = CustomHogDetector(my_svm_filename)
+    hog = CustomHogDetector(my_svm_filename, custom=False)
     h_pos = []
 
     for pos_img in filenames_train_pos[0]:
@@ -299,7 +299,7 @@ if __name__ == "__main__":
     #task2()
 
     # Task 3 - Train SVM
-    git task3()
+    #task3()
 
     # Task 5 - Multiple Detections
     task5()

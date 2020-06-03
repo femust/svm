@@ -10,13 +10,7 @@ import numpy as np
 class CustomHogDetector:
 
     
-    def __init__(self, trained_svm_name):
-        try:
-            self.svm = cv2.ml.SVM_load(trained_svm_name)
-        except:
-            print("Missing files - SVM!");
-            exit();
-            # Some constants that you will be using in your implementation
+    def __init__(self, trained_svm_name, custom = False):
         self.detection_width	= 64 # the crop width dimension
         self.detection_height = 128 # the crop height dimension
         self.window_stride = 32 # the stride size 
@@ -24,7 +18,53 @@ class CustomHogDetector:
         # You may play with different values for these two theshold values below as well 
         self.hit_threshold = 0 # detections above this threshold are counted as positive. 
         self.overlap_threshold = 0.3 # if the overlap between two detections is above this threshold, eliminate the one with the lower confidence score. 
+        
+        if (not custom):
+            try:
+                self.svm = cv2.ml.SVM_load(trained_svm_name)
+            except:
+                print("Missing files - SVM!")
+                exit()
+        if (custom):
+            self.hog = cv2.HOGDescriptor()
+            self.hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
+            # Some constants that you will be using in your implementation
 
+    def is_inside(self, i, o):
+        ix, iy, iw, ih = i
+        ox, oy, ow, oh = o
+        return ix > ox and ix + iw < ox + ow and iy > oy and iy + ih < oy + oh
+
+    def is_bigger_than_overlap_threshold(self, r,q):
+        rx, ry, rw, rh = r
+        qx, qy, qw, qh = q
+
+        area_r = rw * rh
+        area_q = qw * qh
+
+        area_intersect = (-max(rx,qx) + min(rx + rw , qx+qw))*(-max(ry,qy) + min(ry + rh, qy + qh))
+        area_sum = area_r + area_q
+        factor = area_sum / area_intersect
+
+        if (factor > self.overlap_threshold):
+            return True
+        
+        return False
+
+    def detect(self, image, show = True):
+        found_rects, found_weights = self.hog.detectMultiScale(image, winStride=(self.window_stride, self.window_stride), scale=self.scaleFactors[0], finalThreshold=self.hit_threshold)
+        found_rects_filtered = []
+        found_rects_nonfiltered = []
+        found_weights_filtered = []
+        for ri, r in enumerate(found_rects):
+            for qi, q in enumerate(found_rects):
+                found_rects_nonfiltered.append(r)
+                if ri != qi and self.is_inside(r, q) and self.is_bigger_than_overlap_threshold(r,q):
+                    break
+            else:
+                found_rects_filtered.append(r)
+                found_weights_filtered.append(found_weights[ri])
+        return found_rects_filtered, found_weights_filtered, found_rects_nonfiltered
 
     def resize_img(self,  img, width=-1, height=-1):
         h,w,_ = img.shape
@@ -92,7 +132,7 @@ class CustomHogDetector:
         return boxes[pick].astype("int")
 
     def detectMultiScale(self, img):
-        output_img = img.copy();
+        output_img = img.copy()
 
         current_scale = -1
         detections = []
@@ -144,51 +184,6 @@ class CustomHogDetector:
         key = cv2.waitKey(200) # wait 200ms
 
 
-# close all windows
-
-cv2.destroyAllWindows()
-
-
-#MORRIS
-# print('Task 1 - OpenCV HOG')
-    
-#     # Load images
-
-#     filelist = test_images_1 + 'filenames.txt'
-#     filenames = []
-#     with open(filelist, "r") as f:
-#         filenames.append(f.read(-1).splitlines())
-
-#     hog = cv.HOGDescriptor()
-#     hog.setSVMDetector( cv.HOGDescriptor_getDefaultPeopleDetector() )
-
-
-#     for fn in filenames[0]:
-#         print(os.path.join(test_images_1,fn), ' - ',)
-#         img = cv.imread(os.path.join(test_images_1,fn))
-
-
-
-#         found, _w = hog.detectMultiScale(img, winStride=(8,8), padding=(32,32), scale=1.05)
-#         found_filtered = []
-#         for ri, r in enumerate(found):
-#             for qi, q in enumerate(found):
-#                 if ri != qi and inside(r, q):
-#                     break
-#             else:
-#                 found_filtered.append(r)
-#         drawBoundingBox(img, found)
-#         drawBoundingBox(img, found_filtered)
-#         print('%d (%d) found' % (len(found_filtered), len(found)))
-#         cv.imshow('img', img)
-#         ch = cv.waitKey()
-#         if ch == 27:
-#             break
-
-#     print('Done')
-    
-#     cv.waitKey(0)
-#     cv.destroyAllWindows()
 
 
 
